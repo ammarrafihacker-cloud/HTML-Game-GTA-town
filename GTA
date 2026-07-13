@@ -1,0 +1,162 @@
+@ -0,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Mini GTA – City Drive</title>
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #222;
+}
+canvas {
+    display: block;
+    background: #555;
+}
+#hud {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: #00ffcc;
+    font-family: Arial;
+    font-size: 16px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+Speed: <span id="speed">0</span><br>
+Wanted: <span id="wanted">0</span>
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+// Player car
+const player = {
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    w: 30,
+    h: 50,
+    speed: 0,
+    angle: 0
+};
+
+// Police
+const police = [];
+let wanted = 0;
+
+// Controls
+const keys = {};
+addEventListener("keydown", e => keys[e.key] = true);
+addEventListener("keyup", e => keys[e.key] = false);
+
+// Spawn police
+function spawnPolice() {
+    police.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        speed: 2
+    });
+}
+
+// Draw city
+function drawRoad() {
+    ctx.fillStyle = "#333";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "#777";
+    for (let i = 0; i < canvas.width; i += 120) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+    }
+    for (let j = 0; j < canvas.height; j += 120) {
+        ctx.beginPath();
+        ctx.moveTo(0, j);
+        ctx.lineTo(canvas.width, j);
+        ctx.stroke();
+    }
+}
+
+// Draw car
+function drawCar() {
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.angle);
+    ctx.fillStyle = "#00ffcc";
+    ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
+    ctx.restore();
+}
+
+// Draw police
+function drawPolice() {
+    police.forEach(p => {
+        ctx.fillStyle = "red";
+        ctx.fillRect(p.x - 15, p.y - 20, 30, 40);
+
+        // Chase player
+        const dx = player.x - p.x;
+        const dy = player.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        p.x += (dx / dist) * p.speed;
+        p.y += (dy / dist) * p.speed;
+
+        // Catch
+        if (dist < 30) {
+            alert("BUSTED 🚓 GAME OVER");
+            location.reload();
+        }
+    });
+}
+
+// Update player
+function updatePlayer() {
+    if (keys["ArrowUp"] || keys["w"]) player.speed += 0.1;
+    if (keys["ArrowDown"] || keys["s"]) player.speed -= 0.1;
+
+    player.speed *= 0.98;
+    player.speed = Math.max(Math.min(player.speed, 6), -2);
+
+    if (keys["ArrowLeft"] || keys["a"]) player.angle -= 0.05;
+    if (keys["ArrowRight"] || keys["d"]) player.angle += 0.05;
+
+    player.x += Math.sin(player.angle) * player.speed;
+    player.y -= Math.cos(player.angle) * player.speed;
+
+    document.getElementById("speed").innerText = Math.abs(player.speed).toFixed(1);
+}
+
+// Wanted system
+setInterval(() => {
+    if (Math.abs(player.speed) > 4) {
+        wanted++;
+        document.getElementById("wanted").innerText = wanted;
+        spawnPolice();
+    }
+}, 3000);
+
+// Game loop
+function loop() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawRoad();
+    updatePlayer();
+    drawCar();
+    drawPolice();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+
+</body>
+</html>
